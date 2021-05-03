@@ -1,0 +1,31 @@
+{
+  "timeZone": "America/Chicago",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "Test",
+      "functionName": "Test"
+    }, {
+      "menuName": "TextChanges",
+      "functionName": "TextChanges"
+    }, {
+      "menuName": "Untitled Macro",
+      "functionName": "UntitledMacro"
+    }, {
+      "menuName": "Untitled Macro 1",
+      "functionName": "UntitledMacro1"
+    }, {
+      "menuName": "Untitled Macro 2",
+      "functionName": "UntitledMacro2"
+    }, {
+      "menuName": "FillInBillingRate",
+      "functionName": "FillInBillingRate"
+    }, {
+      "menuName": "ProcessInvoice",
+      "functionName": "ProcessInvoice"
+    }]
+  }
+}
