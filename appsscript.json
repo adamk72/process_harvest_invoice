@@ -6,7 +6,7 @@
   "sheets": {
     "macros": [
       {
-        "menuName": "ProcessInvoice",
+        "menuName": "Process Invoice",
         "functionName": "ProcessInvoice"
       }
     ]
