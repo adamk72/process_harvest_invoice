@@ -37,6 +37,9 @@ function ProcessInvoice()
   let altRowColor = configSS.getRange("A:A").createTextFinder("Alt Row Hex Color:").matchCase(true).findNext().offset(0, 1).getValue()
   let defocusedTextColor = configSS.getRange("A:A").createTextFinder("Defocused Hex Color: ").matchCase(true).findNext().offset(0, 1).getValue()
 
+  let projectTaskDict = {}
+  let projectId = null
+
 
   for(var i = 0; i<dataHours.length;i++){
     if (typeof(dataHours[i][0]) == 'string') { continue }
@@ -51,6 +54,11 @@ function ProcessInvoice()
       hoursCell =  dataRangeHours.getCell(j, 7)
       projectCell = dataRangeHours.getCell(j, 3)
       hoursTasksProjects.push({ project: projectCell.getValue(), task: taskCell.getValue(), hours: hoursCell.getValue(), date: dataDate })
+
+      let taskName = taskCell.getValue()
+      let currentHours = projectTaskDict.projectTaskId.taskName
+      projectTaskDict[projectId]= { taskName: currentHours + hoursCell.getValue() }
+      
       continue // Got the first date, so continue in order to incrementing
     }
     if (dataDate > endDate) { break; } // a bigger date, so we're done.
@@ -58,6 +66,7 @@ function ProcessInvoice()
       taskCell =  dataRangeHours.getCell(j, 5)
       hoursCell =  dataRangeHours.getCell(j, 7)
       projectCell = dataRangeHours.getCell(j, 3)
+
       hoursTasksProjects.push({ project: projectCell.getValue(), task: taskCell.getValue(), hours: hoursCell.getValue(), date: dataDate})
     }
   }
