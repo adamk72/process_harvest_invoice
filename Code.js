@@ -5,7 +5,7 @@
 **/
 
 Object.size = function(obj) {
-  var size = 0,
+  let size = 0,
     key;
   for (key in obj) {
     if (obj.hasOwnProperty(key)) size++;
@@ -13,41 +13,53 @@ Object.size = function(obj) {
   return size;
 };
 
+function GetConfigInformation(activeSS)
+{
+
+  let dateFormat = "yyyy-MM-dd"
+  let configSS = activeSS.getSheetByName('Config')
+
+  let hourlyRate = configSS.getRange("A:A").createTextFinder("Hourly Rate").matchCase(true).findNext().offset(0, 1).getValue()
+  let altRowColor = configSS.getRange("A:A").createTextFinder("Alt Row Hex Color").matchCase(true).findNext().offset(0, 1).getValue()
+  let defocusedTextColor = configSS.getRange("A:A").createTextFinder("Defocused Hex Color").matchCase(true).findNext().offset(0, 1).getValue()
+
+  let startDate = configSS.getRange("A:A").createTextFinder("Start Date").matchCase(true).findNext().offset(0, 1).getValue()
+  let endDate= configSS.getRange("A:A").createTextFinder("End Date").matchCase(true).findNext().offset(0, 1).getValue()
+  startDate = Utilities.formatDate(startDate, userTimeZone, dateFormat)
+  endDate = Utilities.formatDate(endDate, userTimeZone, dateFormat)
+
+  return { rate: hourlyRate, altRowColor, defocusedTextColor, startdate, endDate }
+}
+
 function ProcessInvoice()
 {
-  var dateFormat = "yyyy-MM-dd"
+  let dateFormat = "yyyy-MM-dd"
+
+  let cfg = GetConfigInformation()
  
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  var activeSS = SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName('Hours'), true);
-  var userTimeZone = spreadsheet.getSpreadsheetTimeZone();
+  let spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let activeSS = SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName('Hours'), true);
+  let userTimeZone = spreadsheet.getSpreadsheetTimeZone();
 
-  var dataRangeHours = activeSS.getDataRange()
-  var dataHours = dataRangeHours.getValues()
-  var startDate = Utilities.formatDate(new Date(activeSS.getRange("b1").getValue()), userTimeZone, dateFormat)
-  var endDate = Utilities.formatDate(new Date(activeSS.getRange("c1").getValue()), userTimeZone, dateFormat)
+  let dataRangeHours = activeSS.getDataRange()
+  let dataHours = dataRangeHours.getValues()
  
-  var billSum = 0
-  var hoursTasksProjects = []
+  let billSum = 0
+  let hoursTasksProjects = []
 
-  var startDataCollecting = false
-
-  let configSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config')
-
-  let hourlyRate = configSS.getRange("A:A").createTextFinder("Hourly Rate:").matchCase(true).findNext().offset(0, 1).getValue()
-  let altRowColor = configSS.getRange("A:A").createTextFinder("Alt Row Hex Color:").matchCase(true).findNext().offset(0, 1).getValue()
-  let defocusedTextColor = configSS.getRange("A:A").createTextFinder("Defocused Hex Color: ").matchCase(true).findNext().offset(0, 1).getValue()
+  let startDataCollecting = false
 
   let projectTaskDict = {}
   let projectId = null
 
 
-  for(var i = 0; i<dataHours.length;i++){
+  for(let i = 0; i<dataHours.length;i++){
     if (typeof(dataHours[i][0]) == 'string') { continue }
-    var dataDate = Utilities.formatDate(new Date(dataHours[i][0]), userTimeZone, dateFormat)
-    var taskCell = null
-    var hoursCell = null
-    var projectCell = null
-    var j = i + 1
+    let dataDate = Utilities.formatDate(new Date(dataHours[i][0]), userTimeZone, dateFormat)
+    let taskCell = null
+    let hoursCell = null
+    let projectCell = null
+    let j = i + 1
     if(dataDate == startDate && !startDataCollecting) {
       startDataCollecting = true
       taskCell =  dataRangeHours.getCell(j, 5)
@@ -97,11 +109,11 @@ function ProcessInvoice()
   
   // Delete the current list
   // ProjectSTART is a unique word; "START" is the same color as cell background so it will not be seen. This is how I'll find where the data to delete is.
-  var startCell = activeSS.getRange("B:B").createTextFinder("ProjectSTART").matchCase(true).findNext()
-  var startRow = startCell.getRow() + 1 // want to focus on the row where change will actually happen so the header remains untouched.
+  let startCell = activeSS.getRange("B:B").createTextFinder("ProjectSTART").matchCase(true).findNext()
+  let startRow = startCell.getRow() + 1 // want to focus on the row where change will actually happen so the header remains untouched.
   
-  var endCell = activeSS.getRange("B:B").createTextFinder("Notes:").matchCase(true).findNext()
-  var lastRow = endCell.getRow()
+  let endCell = activeSS.getRange("B:B").createTextFinder("Notes:").matchCase(true).findNext()
+  let lastRow = endCell.getRow()
 
   // Count current rows so we know how many to delete.
   // Delete the rows, then we're going to add new rows one at a time
@@ -126,7 +138,7 @@ function ProcessInvoice()
         taskObj[task][date] += hours
     }
   
-    var cell = currentRowRange.getCell(1, 2)
+    let cell = currentRowRange.getCell(1, 2)
     cell.setValue(proj)
     cell.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
     for (const task in taskObj)
@@ -166,7 +178,7 @@ function ProcessInvoice()
     }
   }
 
-  var lastInvoiceRow = currentRow + 1
+  let lastInvoiceRow = currentRow + 1
   let numOfRows = currentRow - startRow
 
   // Add sum function for total
