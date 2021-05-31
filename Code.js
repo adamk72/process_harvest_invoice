@@ -57,7 +57,7 @@ function ProcessInvoice()
 
       let taskName = taskCell.getValue()
       let currentHours = projectTaskDict.projectTaskId.taskName
-      projectTaskDict[projectId]= { taskName: currentHours + hoursCell.getValue() }
+      projectTaskDict[projectId][taskName]= { hours: currentHours + hoursCell.getValue() }
       
       continue // Got the first date, so continue in order to incrementing
     }
@@ -68,6 +68,9 @@ function ProcessInvoice()
       projectCell = dataRangeHours.getCell(j, 3)
 
       hoursTasksProjects.push({ project: projectCell.getValue(), task: taskCell.getValue(), hours: hoursCell.getValue(), date: dataDate})
+            let taskName = taskCell.getValue()
+      let currentHours = projectTaskDict.projectTaskId.taskName
+      projectTaskDict[projectId][taskName]= { hours: currentHours + hoursCell.getValue() }
     }
   }
 
