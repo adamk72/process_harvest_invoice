@@ -13,9 +13,10 @@ Object.size = function (obj) {
   return size;
 };
 
-function GetConfigInformation(activeSS) {
+function GetConfigInformation(ss) {
   let dateFormat = 'yyyy-MM-dd';
-  let configSS = activeSS.getSheetByName('Config');
+  let configSS = ss.getSheetByName('Config');
+  let userTimeZone = ss.getSpreadsheetTimeZone();
 
   let hourlyRate = configSS
     .getRange('A:A')
@@ -60,7 +61,7 @@ function GetConfigInformation(activeSS) {
     rate: hourlyRate,
     altRowColor,
     defocusedTextColor,
-    startdate,
+    startDate,
     endDate,
   };
 }
@@ -68,16 +69,16 @@ function GetConfigInformation(activeSS) {
 function ProcessInvoice() {
   let dateFormat = 'yyyy-MM-dd';
 
-  let spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = SpreadsheetApp.getActiveSpreadsheet();
   let activeSS = SpreadsheetApp.setActiveSheet(
-    spreadsheet.getSheetByName('Hours'),
+    sheet.getSheetByName('Hours'),
     true
   );
-  let cfg = GetConfigInformation(activeSS);
-  let userTimeZone = spreadsheet.getSpreadsheetTimeZone();
+  let cfg = GetConfigInformation(sheet);
+  let userTimeZone = sheet.getSpreadsheetTimeZone();
 
-  let dataRangeHours = activeSS.getDataRange();
-  let dataHours = dataRangeHours.getValues();
+  let dateRange = activeSS.getDataRange();
+  let dataValues = dateRange.getValues();
 
   let billSum = 0;
   let hoursTasksProjects = [];
@@ -85,98 +86,55 @@ function ProcessInvoice() {
   let startDataCollecting = false;
 
   let projectTaskDict = {};
-  let projectId = null;
 
-  for (let i = 0; i < dataHours.length; i++) {
-    if (typeof dataHours[i][0] == 'string') {
+  for (let dateIndex = 0; dateIndex < dataValues.length; dateIndex++) { 
+
+    if (typeof dataValues[dateIndex][0] == 'string') {
       continue;
     }
     let dataDate = Utilities.formatDate(
-      new Date(dataHours[i][0]),
+      new Date(dataValues[dateIndex][0]),
       userTimeZone,
       dateFormat
     );
-    let taskCell = null;
-    let hoursCell = null;
-    let projectCell = null;
-    let j = i + 1;
-    if (dataDate == startDate && !startDataCollecting) {
-      startDataCollecting = true;
-      taskCell = dataRangeHours.getCell(j, 5);
-      hoursCell = dataRangeHours.getCell(j, 7);
-      projectCell = dataRangeHours.getCell(j, 3);
-      hoursTasksProjects.push({
-        project: projectCell.getValue(),
-        task: taskCell.getValue(),
-        hours: hoursCell.getValue(),
-        date: dataDate,
-      });
 
-      let taskName = taskCell.getValue();
-      let currentHours = projectTaskDict.projectTaskId.taskName;
-      projectTaskDict[projectId][taskName] = {
-        hours: currentHours + hoursCell.getValue(),
-      };
-
-      continue; // Got the first date, so continue in order to incrementing
-    }
-    if (dataDate > endDate) {
+    if (dataDate > cfg.endDate) {
       break;
     } // a bigger date, so we're done.
-    if (dataDate >= startDate && startDataCollecting) {
-      taskCell = dataRangeHours.getCell(j, 5);
-      hoursCell = dataRangeHours.getCell(j, 7);
-      projectCell = dataRangeHours.getCell(j, 3);
 
-      hoursTasksProjects.push({
-        project: projectCell.getValue(),
-        task: taskCell.getValue(),
-        hours: hoursCell.getValue(),
-        date: dataDate,
-      });
-      let taskName = taskCell.getValue();
-      let currentHours = projectTaskDict.projectTaskId.taskName;
-      projectTaskDict[projectId][taskName] = {
-        hours: currentHours + hoursCell.getValue(),
-      };
+    if (dataDate >= cfg.startDate && !startDataCollecting) {
+      // console.log(dataDate, cfg.startDate);
+      startDataCollecting = true;
+    }
+
+    if (startDataCollecting) {
+      let projectName = dateRange.getCell(dateIndex + 1, 3).getValue();
+      let taskName = dateRange.getCell(dateIndex + 1, 5).getValue();
+      let hours = dateRange.getCell(dateIndex + 1, 7).getValue();
+
+      projectTaskDict[projectName] = projectTaskDict[projectName] || {};
+      projectTaskDict[projectName][taskName] =
+        projectTaskDict[projectName][taskName] || 0;
+
+      let currentHours = Number(projectTaskDict[projectName][taskName]) + hours;
+      projectTaskDict[projectName][taskName] = Number(currentHours).toFixed(2);
     }
   }
-
-  let projObj = {};
-  hoursTasksProjects.forEach((obj) => {
-    if (!Array.isArray(projObj[obj.project])) {
-      projObj[obj.project] = [];
-    }
-    projObj[obj.project].push({
-      task: obj.task,
-      hours: obj.hours,
-      date: obj.date,
-    });
-  });
 
   // Now let's start populating the actual invoice sheet
-
-  spreadsheet.setActiveSheet(
-    spreadsheet.getSheetByName('Invoice Master'),
-    true
-  );
+  sheet.setActiveSheet(sheet.getSheetByName('Invoice Master'), true);
   let newInvoiceName =
     'Invoice for ' +
-    Utilities.formatDate(new Date(startDate), 'GMT+1', 'MM/dd/YY') +
+    Utilities.formatDate(new Date(cfg.startDate), 'GMT+1', 'MM/dd/YY') +
     '-' +
-    Utilities.formatDate(new Date(endDate), 'GMT+1', 'MM/dd/YY');
+    Utilities.formatDate(new Date(cfg.endDate), 'GMT+1', 'MM/dd/YY');
 
-  if (spreadsheet.getSheetByName(newInvoiceName) == null) {
-    spreadsheet.duplicateActiveSheet();
-    spreadsheet
-      .getSheetByName('Copy of Invoice Master')
-      .setName(newInvoiceName);
+  if (sheet.getSheetByName(newInvoiceName) == null) {
+    sheet.duplicateActiveSheet();
+    sheet.getSheetByName('Copy of Invoice Master').setName(newInvoiceName);
   }
 
-  activeSS = spreadsheet.setActiveSheet(
-    spreadsheet.getSheetByName(newInvoiceName),
-    true
-  );
+  activeSS = sheet.setActiveSheet(sheet.getSheetByName(newInvoiceName), true);
 
   // Delete the current list
   // ProjectSTART is a unique word; "START" is the same color as cell background so it will not be seen. This is how I'll find where the data to delete is.
@@ -202,55 +160,34 @@ function ProcessInvoice() {
   activeSS.insertRowBefore(currentRow);
   let currentRowRange = activeSS.getRange('A' + currentRow + ':H' + currentRow);
 
-  for (const proj in projObj) {
-    // collate the hours
-    let taskObj = {};
-    for (let k = 0; k < projObj[proj].length; k++) {
-      let task = projObj[proj][k].task,
-        date = projObj[proj][k].date,
-        hours = projObj[proj][k].hours;
-
-      if (taskObj[task] == null) taskObj[task] = {};
-      if (taskObj[task] != null && taskObj[task][date] == null)
-        taskObj[task][date] = 0;
-      taskObj[task][date] += hours;
-    }
-
+  for (let projectName of Object.keys(projectTaskDict)) {
     let cell = currentRowRange.getCell(1, 2);
-    cell.setValue(proj);
+    cell.setValue(projectName);
     cell.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-    for (const task in taskObj) {
-      let perDateCount = Object.size(taskObj[task]);
+
+    for (let taskName of Object.keys(projectTaskDict[projectName])) {
       cell = currentRowRange.getCell(1, 3);
-      cell.setValue(task);
+      cell.setValue(taskName);
       cell.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-      for (const [taskDate, taskHours] of Object.entries(taskObj[task])) {
-        cell = currentRowRange.getCell(1, 4); // date
-        cell.setValue(taskDate);
 
-        cell = currentRowRange.getCell(1, 5); // hours
-        cell.setValue(taskHours);
+      cell = currentRowRange.getCell(1, 5); // hours
+      cell.setValue(projectTaskDict[projectName][taskName]);
 
-        cell = currentRowRange.getCell(1, 6); // rate
-        cell.setValue(hourlyRate);
+      cell = currentRowRange.getCell(1, 6); // rate
+      cell.setValue(cfg.rate);
 
-        cell = currentRowRange.getCell(1, 7); // total
-        cell.setFormula('=E' + currentRow + '*F' + currentRow);
+      cell = currentRowRange.getCell(1, 7); // total
+      cell.setFormula('=E' + currentRow + '*F' + currentRow);
 
-        if ((currentRow - 1) % 2) {
-          activeSS.getRange(currentRow, 2, 1, 6).setBackground(altRowColor);
-        } else {
-          activeSS.getRange(currentRow, 2, 1, 6).setBackground('#ffffff');
-        }
-
-        if (perDateCount-- > 0) {
-          activeSS.insertRowAfter(currentRow);
-          currentRow++;
-          currentRowRange = activeSS.getRange(
-            'A' + currentRow + ':H' + currentRow
-          ); // TODO: make this more seamless; currentRow and currentRowRange risk messing up each other if I make other code changes.
-        }
+      if ((currentRow - 1) % 2) {
+        activeSS.getRange(currentRow, 2, 1, 6).setBackground(cfg.altRowColor);
+      } else {
+        activeSS.getRange(currentRow, 2, 1, 6).setBackground('#ffffff');
       }
+
+      activeSS.insertRowAfter(currentRow);
+      currentRow++;
+      currentRowRange = activeSS.getRange('A' + currentRow + ':H' + currentRow);
     }
   }
 
@@ -265,7 +202,7 @@ function ProcessInvoice() {
   // General formatting
   activeSS
     .getRange(startRow, 2, numOfRows, 6)
-    .setFontColor(defocusedTextColor)
+    .setFontColor(cfg.defocusedTextColor)
     .setFontWeight(null); // all
   activeSS
     .getRange(startRow, 2, numOfRows, 1)
