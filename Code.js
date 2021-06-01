@@ -2,6 +2,7 @@
  * @author Adam Kecskes
  * @note Work in progress; use at your own risk. Also, this is hardly an efficient method for pulling data.
  * @version 0.0.1
+ * @TODO Remove Date column || arrange by Client Name (may need to concatenate) || Fix output of PDF if possible
  **/
 
 Object.size = function (obj) {
@@ -87,8 +88,7 @@ function ProcessInvoice() {
 
   let projectTaskDict = {};
 
-  for (let dateIndex = 0; dateIndex < dataValues.length; dateIndex++) { 
-
+  for (let dateIndex = 0; dateIndex < dataValues.length; dateIndex++) {
     if (typeof dataValues[dateIndex][0] == 'string') {
       continue;
     }
